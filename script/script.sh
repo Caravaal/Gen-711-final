@@ -1,16 +1,15 @@
 #!/bin/bash
 
 source activate qiime2-amplicon-2024.5
-mkdir ~/qiime2
-cd ~/qiime2
-wget -O sample-metadata.tsv \
-  'https://gut-to-soil-tutorial.readthedocs.io/en/latest/data/gut-to-soil/sample-metadata.tsv'
+mkdir ~/qiime2_output
+cd ~/qiime2_output
+cp ~/GEN711/sample-metadata.tsv ~/qiime2_output
 
-wget -O demux.qza \
-  'https://gut-to-soil-tutorial.readthedocs.io/en/latest/data/gut-to-soil/demux.qza'
-
-wget -O suboptimal-16S-rRNA-classifier.qza \
-  'https://gut-to-soil-tutorial.readthedocs.io/en/latest/data/gut-to-soil/suboptimal-16S-rRNA-classifier.qza'
+qiime tools import \
+ --type 'SampleData[PairedEndSequencesWithQuality]' \
+ --input-path ~/GEN711/Genome_back/manifest.tsv \
+ --output-path demux.qza \
+ --input-format PairedEndFastqManifestPhred33V2
 
 qiime demux summarize \
   --i-data demux.qza \
@@ -46,6 +45,13 @@ qiime feature-table filter-seqs \
   --i-data asv-seqs.qza \
   --i-table asv-table-ms2.qza \
   --o-filtered-data asv-seqs-ms2.qza
+
+qiime phylogeny align-to-tree-mafft-fasttree \
+  --i-sequences asv-seqs.qza \
+  --o-alignment aligned-rep-seqs.qza \
+  --o-masked-alignment masked-aligned-rep-seqs.qza \
+  --o-tree unrooted-tree.qza \
+  --o-rooted-tree rooted-tree.qza
 
 qiime feature-classifier classify-sklearn \
   --i-classifier suboptimal-16S-rRNA-classifier.qza \
