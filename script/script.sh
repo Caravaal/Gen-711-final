@@ -5,11 +5,17 @@ mkdir ~/qiime2_output
 cd ~/qiime2_output
 cp ~/GEN711/genome_back/metadata.tsv ~/qiime2_output
 
+wget -O 'suboptimal-16S-rRNA-classifier.qza' \
+  'https://gut-to-soil-tutorial.readthedocs.io/en/latest/data/gut-to-soil/suboptimal-16S-rRNA-classifier.qza'
+
+echo "tool import"
 qiime tools import \
  --type 'SampleData[PairedEndSequencesWithQuality]' \
  --input-path /home/users/cjd1179/GEN711/genome_back/manifest.tsv \
  --output-path demux.qza \
  --input-format PairedEndFastqManifestPhred33V2
+
+echo "summarizing"
 
 qiime demux summarize \
   --i-data demux.qza \
@@ -27,11 +33,14 @@ qiime dada2 denoise-paired \
   --o-table asv-table.qza \
   --o-denoising-stats stats.qza
 
-echo "denoising complete
+echo "denoising complete"
+echo "tabulating metadata"
 
 qiime metadata tabulate \
   --m-input-file stats.qza \
   --o-visualization stats.qzv
+
+echo "generating feature table"
 
 qiime feature-table summarize-plus \
   --i-table asv-table.qza \
@@ -40,6 +49,7 @@ qiime feature-table summarize-plus \
   --o-sample-frequencies sample-frequencies.qza \
   --o-feature-frequencies asv-frequencies.qza
 
+echo "filtering"
 qiime feature-table filter-features \
   --i-table asv-table.qza \
   --p-min-samples 2 \
@@ -50,6 +60,8 @@ qiime feature-table filter-seqs \
   --i-table asv-table-ms2.qza \
   --o-filtered-data asv-seqs-ms2.qza
 
+echo "aligning to trees"
+
 qiime phylogeny align-to-tree-mafft-fasttree \
   --i-sequences asv-seqs.qza \
   --o-alignment aligned-rep-seqs.qza \
@@ -57,12 +69,16 @@ qiime phylogeny align-to-tree-mafft-fasttree \
   --o-tree unrooted-tree.qza \
   --o-rooted-tree rooted-tree.qza
 
+echo "feature classifier"
+
 qiime feature-classifier classify-sklearn \
   --i-classifier suboptimal-16S-rRNA-classifier.qza \
   --i-reads asv-seqs-ms2.qza \
   --o-classification taxonomy.qza
 
 conda activate q2-boots-amplicon-2025.4
+
+echo "kmer diversity"
 
 qiime boots kmer-diversity \
   --i-table asv-table-ms2.qza \
@@ -75,12 +91,16 @@ qiime boots kmer-diversity \
   --p-beta-average-method medoid \
   --output-dir boots-kmer-diversity
 
+echo "Generating trees"
+
 qiime diversity core-metrics-phylogenetic \
   --i-phylogeny rooted-tree.qza \
   --i-table asv-table-ms2.qza \
   --p-sampling-depth 1103 \
   --m-metadata-file metadata.tsv \
   --output-dir core-metrics-results
+
+echo "determining group significance"
 
 qiime diversity alpha-group-significance \
   --i-alpha-diversity core-metrics-results/faith_pd_vector.qza \
